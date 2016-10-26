@@ -3,6 +3,7 @@
 <head>
     <title>Algoritmo de Dijkstra</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.2.3/css/bulma.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.min.css">
 </head>
 <body>
@@ -22,15 +23,70 @@
 <section class="section">
     <div class="container">
         <div class="columns">
-
             <!--This is going to be left half-->
             <div class="column is-half">
+                <div class="columns">
+                    <div class="column">
+                        <label for="NuevoNodo" class="label">Agregar Nodo</label>
+                        <div class="control is-expanded">
+                            <p class="control">
+                                <input id="NuevoNodo" type="text" class="input" placeholder="Nombre de Nodo">
+                            </p>
+                            <p class="control">
+                                <label class="checkbox">
+                                    <input id="ConnectedToNode" type="checkbox">
+                                    Conectado a otro nodo?
+                                </label>
+                            </p>
+                            <div class="hide-div" id="ConnectToNewNode">
+                                <p class="control">
+                                    <input id="NodoConectado" type="text" class="input" placeholder="Otro Nodo">
+                                </p>
+                                <p class="control">
+                                    <input id="Distancia" type="number" min="0" class="input" placeholder="Distancia">
+                                </p>
+                            </div>
+                            <p class="control">
+                                <button class="button is-primary" id="AddNode">Agregar</button>
+                            </p>
 
-                <label class="label" for="infija">Expresion Infija</label>
-                <p class="control">
-                    <input id="infija" type="text" class="input" placeholder="">
-                </p>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <table id="TableNodes" class="table">
+                            <thead>
+                            <tr>
+                                <th>Nodos</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td>Node 3</td>
+                                <td class="is-icon">
+                                    <a href="#">
+                                        <i class="fa fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Karyn Holmberg</td>
+                                <td class="is-icon">
+                                    <a href="#">
+                                        <i class="fa fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
+
+
             <!--This is going to be right half-->
             <div class="column is-half">
                 <div id="mynetwork"></div>
@@ -46,37 +102,6 @@
         </div>
     </div>
 </section>
-<script src="//cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.min.js"></script>
 <script src="scripts/bundle.js"></script>
-<script>
-    var nodes = new vis.DataSet([
-        {id: 1, label: 'Node 1'},
-        {id: 2, label: 'Node 2'},
-        {id: 3, label: 'Node 3'},
-        {id: 4, label: 'Node 4'},
-        {id: 5, label: 'Node 5'}
-    ]);
-
-    // create an array with edges
-    var edges = new vis.DataSet([
-        {from: 1, to: 3},
-        {from: 1, to: 2},
-        {from: 2, to: 4},
-        {from: 2, to: 5}
-    ]);
-
-    // create a network
-    var container = document.getElementById('mynetwork');
-
-    // provide the data in the vis format
-    var data = {
-        nodes: nodes,
-        edges: edges
-    };
-    var options = {};
-
-    // initialize your network!
-    var network = new vis.Network(container, data, options);
-</script>
 </body>
 </html>

@@ -1,5 +1,10 @@
 #mynetwork {
-    width: 600px;
+    width: auto;
     height: 400px;
     border: 1px solid lightgray;
+}
+
+
+.hide-div {
+    display: none !important;
 }

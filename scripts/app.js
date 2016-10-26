@@ -1,4 +1,5 @@
-import control from "./control.js";
+import control from "./ui/control";
+
 import style from '../styles/style.css';
 new control();
 
