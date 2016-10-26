@@ -16,9 +16,8 @@ class GraphControls {
         ]);
 
         this._nodes.on('*', () => {
-            //this._onChange(this._nodes.get());
+            this._onChange(this._nodes.get());
         });
-        //this._edges.on('*', this._onChange);
 
         this._options = {
             physics: {
@@ -41,6 +40,7 @@ class GraphControls {
 
             let valueExists = this._nodes.get(value);
             if (!valueExists) {
+                console.log('Add Node: ', value);
                 newNodes.push({
                     id   : value,
                     label: value
@@ -50,6 +50,7 @@ class GraphControls {
                 let connectedValue = document.getElementById('NodoConectado').value;
                 let distance = document.getElementById('Distancia').value;
                 if (!this._nodes.get(connectedValue)) {
+                    console.log('Add Node: ', connectedValue);
                     newNodes.push({
                         id   : connectedValue,
                         label: connectedValue
@@ -68,8 +69,10 @@ class GraphControls {
     removeNode (node) {
         try {
             if (!this._nodes.get(node)) return;
+            console.log('Delete Node: ', node);
             this._nodes.remove({id: node});
             this.getEdges(node).map((edge) => {
+                console.log('Delete Edge: ', edge.id);
                 this.removeEdge(edge.id)
             });
         }
@@ -81,8 +84,8 @@ class GraphControls {
     addEdge (node1, node2, distance = 0) {
         try {
             let connection = this.hasConnection(node1, node2);
-            if (connection && connection.length>0) return this.updateEdge(connection[0], node1, node2, distance);
-
+            if (connection && connection.length > 0) return this.updateEdge(connection[0], node1, node2, distance);
+            console.log('Adding Edge: ', node1 + node2);
             this._edges.add({
                 id   : node1 + node2,
                 from : node1,
@@ -152,6 +155,15 @@ class GraphControls {
 
         this._network = new vis.Network(this._container, data, this._options);
         this._network = this._addNetworkEvents(this._network);
+        this._onChange(this._nodes.get());
+    }
+
+    highlightNode () {
+
+    }
+
+    highlightEdge () {
+
     }
 
 

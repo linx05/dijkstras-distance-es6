@@ -2,10 +2,9 @@ import Graph from './graph';
 
 class Control {
     constructor () {
-        this.graph = new Graph(this._onNodeUpdate);
+        this.graph = new Graph(this._onNodeUpdate.bind(this));
         this.setupAddNode();
         this.setupShowNewNode();
-        this._addListenersTableDeleteButton();
     }
 
 
@@ -26,30 +25,16 @@ class Control {
         $('#ConnectToNewNode').toggleClass('hide-div');
     }
 
-    addNode (name, to = null, distance = null) {
-        //Backend logic
-
-    }
-
     deleteNode (name) {
         this.graph.removeNode(name);
-        console.log('deleting node: ',name);
     }
-
 
     _onNodeUpdate (nodes) {
-        nodes.map((node) => {
-            $('#TableNodes').find('tr:last').after(`<tr><td>${node.id}</td><td class="is-icon"><a href="#"><i class="fa fa-trash"></i></a></td></tr>`);
+        let tableRows = $("#TableNodes tbody");
+        tableRows.find("tr").remove();
+        _.sortBy(nodes, '-id').map((node) => {
+            tableRows.append(`<tr><td>${node.id}</td><td class="is-icon"><a href="#"><i class="fa fa-trash"></i></a></td></tr>`);
         });
-        this._addListenersTableDeleteButton();
-    }
-
-    _onEdgeUpdate (edges) {
-
-    }
-
-    _addNodeDOM (node) {
-        $('#TableNodes').find('tr:last').after(`<tr><td>${node}</td><td class="is-icon"><a href="#"><i class="fa fa-trash"></i></a></td></tr>`);
         this._addListenersTableDeleteButton();
     }
 
@@ -63,6 +48,7 @@ class Control {
             let element = $(e);
             let node = this._getNodeRow(element).children('td').first().text();
             element.on('click', (event) => {
+                console.log(node);
                 this.deleteNode(node);
             });
         });
