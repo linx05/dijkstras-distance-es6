@@ -1,27 +1,38 @@
 import vis from 'vis/dist/vis';
 
 class GraphControls {
-    constructor (cbOnChanges) {
-        this._onChange = cbOnChanges;
-        this._nodes = new vis.DataSet([{id: 1, label: 'Node 1'},
-            {id: 2, label: 'Node 2'},
-            {id: 3, label: 'Node 3'},
-            {id: 4, label: 'Node 4'},
-            {id: 5, label: 'Node 5'}]);
+    constructor (cbOnNodeChanges, cbOnEdgeChanges) {
+        this._onNodeChanges = cbOnNodeChanges;
+        this._onEdgeChanges = cbOnEdgeChanges;
+
+        this._nodes = new vis.DataSet([
+            {id: 'A', label: 'A'},
+            {id: 'B', label: 'B'},
+            {id: 'C', label: 'C'},
+            {id: 'D', label: 'D'},
+            {id: 'E', label: 'E'}
+        ]);
+
         this._edges = new vis.DataSet([
-            {from: 1, to: 3, label: 4},
-            {from: 1, to: 2},
-            {from: 2, to: 4},
-            {from: 2, to: 5}
+            {from: 'A', to: 'C', label: 4},
+            {from: 'A', to: 'B', label: 10},
+            {from: 'B', to: 'D', label: 2},
+            {from: 'B', to: 'E', label: 7}
         ]);
 
         this._nodes.on('*', () => {
-            this._onChange(this._nodes.get());
+            console.log('changes on nodes');
+            this._onNodeChanges(this._nodes.get());
+        });
+
+        this._edges.on('*', () => {
+            console.log('changes on edges');
+            this._onEdgeChanges(this._edges.get());
         });
 
         this._options = {
             physics: {
-                enabled: false
+                enabled: true
             }
         };
         // create a network
@@ -87,7 +98,7 @@ class GraphControls {
             if (connection && connection.length > 0) return this.updateEdge(connection[0], node1, node2, distance);
             console.log('Adding Edge: ', node1 + node2);
             this._edges.add({
-                id   : node1 + node2,
+                id   : `${node1}-${node2}`,
                 from : node1,
                 to   : node2,
                 label: distance
@@ -101,7 +112,7 @@ class GraphControls {
     getEdges (node) {
         return this._edges.get({
             filter: (item) => {
-                return (item.from === node || item.to === node)
+                return (item.from == node || item.to == node)
             }
         })
     }
@@ -155,7 +166,8 @@ class GraphControls {
 
         this._network = new vis.Network(this._container, data, this._options);
         this._network = this._addNetworkEvents(this._network);
-        this._onChange(this._nodes.get());
+        this._onNodeChanges(this._nodes.get());
+        this._onEdgeChanges(this._edges.get());
     }
 
     highlightNode () {

@@ -2,7 +2,7 @@ import Graph from './graph';
 
 class Control {
     constructor () {
-        this.graph = new Graph(this._onNodeUpdate.bind(this));
+        this.graph = new Graph(this._onNodeUpdate.bind(this), this._onEdgeUpdate.bind(this));
         this.setupAddNode();
         this.setupShowNewNode();
     }
@@ -14,7 +14,7 @@ class Control {
         });
     }
 
-    setupAddNode() {
+    setupAddNode () {
         $('#AddNode').on('click', (event) => {
             this.graph.addNode();
         })
@@ -30,26 +30,58 @@ class Control {
     }
 
     _onNodeUpdate (nodes) {
-        let tableRows = $("#TableNodes tbody");
+        this._onUpdate(nodes, '#TableNodes', 'node');
+    }
+
+    _onEdgeUpdate (edges) {
+        this._onUpdate(edges, '#TableEdges', 'edge');
+    }
+
+    _onUpdate (points, element, type) {
+        let tableRows = $(`${element} tbody`);
         tableRows.find("tr").remove();
-        _.sortBy(nodes, '-id').map((node) => {
-            tableRows.append(`<tr><td>${node.id}</td><td class="is-icon"><a href="#"><i class="fa fa-trash"></i></a></td></tr>`);
+        let sortedPoints = _.sortBy(points, '-id');
+        switch (type) {
+            case 'node':
+                this._addNodeRow(tableRows, sortedPoints);
+                this._addListenersTableDeleteButton(element, type);
+                break;
+            case 'edge':
+                this._addEdgeRow(tableRows, sortedPoints);
+                break;
+            default: return;
+        }
+    }
+
+    _addNodeRow (table, nodes) {
+        nodes.map(node => {
+            table.append(
+                `<tr><td>${node.id}</td><td class="is-icon"><a href="#"><i class="fa fa-trash"></i></a></td></tr>`);
         });
-        this._addListenersTableDeleteButton();
+    }
+
+    _addEdgeRow (table, edges) {
+        edges.map(edge => {
+            table.append(`<tr>
+                            <td>${edge.id}</td>
+                            <td>${edge.from}</td>
+                            <td>${edge.to}</td>
+                            <td>${edge.label}</td>
+                        </tr>`);
+        });
     }
 
 
-    _getNodeRow(element) {
+    _getNodeRow (element) {
         return element.closest('tr');
     }
 
-    _addListenersTableDeleteButton () {
-        $('#TableNodes').find('a').map((i, e) => {
+    _addListenersTableDeleteButton (el, type) {
+        $(`${el}`).find('a').map((i, e) => {
             let element = $(e);
-            let node = this._getNodeRow(element).children('td').first().text();
+            let point = this._getNodeRow(element).children('td').first().text();
             element.on('click', (event) => {
-                console.log(node);
-                this.deleteNode(node);
+                if (type === 'node') this.deleteNode(point);
             });
         });
     }
