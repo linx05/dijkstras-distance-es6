@@ -1,11 +1,14 @@
 import vis from 'vis/dist/vis';
 import Dijktra from '../dijskstra-helper';
+import buckets from 'buckets-js';
 
 class GraphControls {
-    constructor (cbOnNodeChanges, cbOnEdgeChanges) {
+    constructor (cbOnNodeChanges, cbOnEdgeChanges, cbOnSelectedChanges) {
         this._onNodeChanges = cbOnNodeChanges;
         this._onEdgeChanges = cbOnEdgeChanges;
+        this._onSelectedChanges = cbOnSelectedChanges;
         this.dijkstra = new Dijktra();
+        this.selectedNodes = new buckets.Stack();
         this._nodes = new vis.DataSet([
             {id: 'A', label: 'A'},
             {id: 'B', label: 'B'},
@@ -35,18 +38,27 @@ class GraphControls {
         });
 
         this._options = {
-            physics: {
+            physics    : {
                 enabled: true
-            }
+            },
+            interaction: {
+                selectable: true
+            },
+            layout     : {randomSeed: 2}
         };
         // create a network
         this._container = document.getElementById('mynetwork');
         // initialize your network!
         this.startNetwork();
-        console.log(this.dijkstra.calculateDijkstra(this._nodes.get(),this._edges.get(),'A','E'));
     }
 
     ////////////////////////////////////////////////////////////////
+
+    calculatePath () {
+        return this.dijkstra.calculateDijkstra(this._nodes.get(), this._edges.get(), this.selectedNodes.toArray());
+    }
+
+
     addNode () {
         try {
             let newNodes = [];
@@ -91,6 +103,7 @@ class GraphControls {
                 console.log('Delete Edge: ', edge.id);
                 this.removeEdge(edge.id)
             });
+            if(this.selectedNodes.contains(node)) this.clearSelectedNodes();
         }
         catch (err) {
             alert(err);
@@ -145,6 +158,15 @@ class GraphControls {
         }
     }
 
+    getSelected() {
+        return this.selectedNodes.toArray();
+    }
+
+    clearSelectedNodes() {
+        this.selectedNodes.clear();
+        this._onSelectedChanges(this.selectedNodes.toArray());
+    }
+
 
     hasConnection (node1, node2) {
         return this._edges.get({
@@ -152,6 +174,22 @@ class GraphControls {
                 return ((item.from === node1 && item.to === node2) || (item.to === node1 && item.from === node2))
             }
         });
+    }
+
+    calculateDistances(nodes) {
+        let result = [];
+        for(let i=0;i<nodes.length-1;i++){
+            let point = {};
+            point.name = nodes[i];
+            point.to = nodes[i+1];
+            point.distance = this.getDistance(nodes[i],nodes[i+1]);
+            result.push(point);
+        }
+        return result;
+    }
+
+    getDistance (node1, node2) {
+        return this.hasConnection(node1, node2)[0].label;
     }
 
     resetNetwork () {
@@ -171,29 +209,43 @@ class GraphControls {
 
         this._network = new vis.Network(this._container, data, this._options);
         this._network = this._addNetworkEvents(this._network);
+        this._network.on('click', this._clickNode.bind(this));
         this._onNodeChanges(this._nodes.get());
         this._onEdgeChanges(this._edges.get());
-    }
-
-    highlightNode () {
-
-    }
-
-    highlightEdge () {
-
     }
 
 
     //////"Private" Methods
     _addNetworkEvents (network) {
         let _network = network;
-        _network.on('selectNode', this._clickNode);
-        _network.on('deselectNode', this._clickNode);
+        _network.on('click', this._clickNode);
         return _network;
     }
 
-    _clickNode (obj) {
 
+    _clickNode (obj) {
+        let node = obj.nodes[0];
+        if (!node || !this.selectedNodes) return;
+        if (this.selectedNodes.contains(node)) {
+            let backupstack = new buckets.Stack();
+            this.selectedNodes.forEach(node=> {
+                backupstack.add(node);
+            });
+            this.selectedNodes.clear();
+            backupstack.forEach(oldNode => {
+                if (oldNode != node) this.selectedNodes.add(oldNode);
+            });
+        }
+        else {
+            if (this.selectedNodes.size() < 2) {
+                this.selectedNodes.add(node);
+            }
+            else {
+                this.selectedNodes.pop();
+                this.selectedNodes.add(node);
+            }
+        }
+        this._onSelectedChanges(this.selectedNodes.toArray());
     }
 
 }

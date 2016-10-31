@@ -110,9 +110,10 @@
 	    function Control() {
 	        _classCallCheck(this, Control);
 
-	        this.graph = new _graph2.default(this._onNodeUpdate.bind(this), this._onEdgeUpdate.bind(this));
+	        this.graph = new _graph2.default(this._onNodeUpdate.bind(this), this._onEdgeUpdate.bind(this), this._onSelectedNodeUpdate.bind(this));
 	        this.setupAddNode();
 	        this.setupShowNewNode();
+	        this.setupDijkstra();
 	    }
 
 	    _createClass(Control, [{
@@ -134,6 +135,21 @@
 	            });
 	        }
 	    }, {
+	        key: 'setupDijkstra',
+	        value: function setupDijkstra() {
+	            var _this3 = this;
+
+	            $('#CalculatePath').on('click', function () {
+	                var points = _this3.graph.calculatePath();
+	                points = _this3.graph.calculateDistances(points);
+	                _this3._pathTable(points);
+	                var distance = _.reduce(points, function (sum, point) {
+	                    return sum + point.distance;
+	                }, 0);
+	                _this3._addPathDistance(distance);
+	            });
+	        }
+	    }, {
 	        key: 'toggleAddConectedNode',
 	        value: function toggleAddConectedNode() {
 	            $('#ConnectToNewNode').toggleClass('hide-div');
@@ -142,6 +158,11 @@
 	        key: 'deleteNode',
 	        value: function deleteNode(name) {
 	            this.graph.removeNode(name);
+	        }
+	    }, {
+	        key: '_onSelectedNodeUpdate',
+	        value: function _onSelectedNodeUpdate(nodes) {
+	            this._onUpdate(nodes, '#SelectedNodes', 'selected');
 	        }
 	    }, {
 	        key: '_onNodeUpdate',
@@ -160,6 +181,12 @@
 	            tableRows.find("tr").remove();
 	            var sortedPoints = _.sortBy(points, '-id');
 	            switch (type) {
+	                case 'path':
+	                    this._addPathPointsRow(tableRows, sortedPoints);
+	                    break;
+	                case 'selected':
+	                    this._addSelectedNodesRow(tableRows, sortedPoints);
+	                    break;
 	                case 'node':
 	                    this._addNodeRow(tableRows, sortedPoints);
 	                    this._addListenersTableDeleteButton(element, type);
@@ -170,6 +197,31 @@
 	                default:
 	                    return;
 	            }
+	        }
+	    }, {
+	        key: '_pathTable',
+	        value: function _pathTable(points) {
+	            this._onUpdate(points, '#NodePath', 'path');
+	        }
+	    }, {
+	        key: '_addPathDistance',
+	        value: function _addPathDistance(distance) {
+	            var tableRows = $('#NodePath tbody');
+	            tableRows.append('<tr><td></td><td></td><td></td><td><b>' + distance + '</b></td>/tr>');
+	        }
+	    }, {
+	        key: '_addPathPointsRow',
+	        value: function _addPathPointsRow(table, nodes) {
+	            for (var i = 0; i < nodes.length; i++) {
+	                table.append('<tr><td>' + nodes[i].name + '</td><td>' + nodes[i].to + '</td><td>' + nodes[i].distance + '</td><td></td>/tr>');
+	            }
+	        }
+	    }, {
+	        key: '_addSelectedNodesRow',
+	        value: function _addSelectedNodesRow(table, nodes) {
+	            nodes.map(function (node) {
+	                table.append('<tr><td>' + node + '</td></tr>');
+	            });
 	        }
 	    }, {
 	        key: '_addNodeRow',
@@ -193,13 +245,13 @@
 	    }, {
 	        key: '_addListenersTableDeleteButton',
 	        value: function _addListenersTableDeleteButton(el, type) {
-	            var _this3 = this;
+	            var _this4 = this;
 
 	            $('' + el).find('a').map(function (i, e) {
 	                var element = $(e);
-	                var point = _this3._getNodeRow(element).children('td').first().text();
+	                var point = _this4._getNodeRow(element).children('td').first().text();
 	                element.on('click', function (event) {
-	                    if (type === 'node') _this3.deleteNode(point);
+	                    if (type === 'node') _this4.deleteNode(point);
 	                });
 	            });
 	        }
@@ -27462,19 +27514,25 @@
 
 	var _dijskstraHelper2 = _interopRequireDefault(_dijskstraHelper);
 
+	var _bucketsJs = __webpack_require__(14);
+
+	var _bucketsJs2 = _interopRequireDefault(_bucketsJs);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 	var GraphControls = function () {
-	    function GraphControls(cbOnNodeChanges, cbOnEdgeChanges) {
+	    function GraphControls(cbOnNodeChanges, cbOnEdgeChanges, cbOnSelectedChanges) {
 	        var _this = this;
 
 	        _classCallCheck(this, GraphControls);
 
 	        this._onNodeChanges = cbOnNodeChanges;
 	        this._onEdgeChanges = cbOnEdgeChanges;
+	        this._onSelectedChanges = cbOnSelectedChanges;
 	        this.dijkstra = new _dijskstraHelper2.default();
+	        this.selectedNodes = new _bucketsJs2.default.Stack();
 	        this._nodes = new _vis2.default.DataSet([{ id: 'A', label: 'A' }, { id: 'B', label: 'B' }, { id: 'C', label: 'C' }, { id: 'D', label: 'D' }, { id: 'E', label: 'E' }, { id: 'F', label: 'F' }]);
 
 	        this._edges = new _vis2.default.DataSet([{ from: 'A', to: 'C', label: 4 }, { from: 'A', to: 'B', label: 10 }, { from: 'B', to: 'D', label: 2 }, { from: 'B', to: 'E', label: 2 }, { from: 'A', to: 'F', label: 2 }, { from: 'F', to: 'E', label: 2 }]);
@@ -27492,19 +27550,26 @@
 	        this._options = {
 	            physics: {
 	                enabled: true
-	            }
+	            },
+	            interaction: {
+	                selectable: true
+	            },
+	            layout: { randomSeed: 2 }
 	        };
 	        // create a network
 	        this._container = document.getElementById('mynetwork');
 	        // initialize your network!
 	        this.startNetwork();
-	        console.log(this.dijkstra.calculateDijkstra(this._nodes.get(), this._edges.get(), 'A', 'E'));
 	    }
 
 	    ////////////////////////////////////////////////////////////////
 
-
 	    _createClass(GraphControls, [{
+	        key: 'calculatePath',
+	        value: function calculatePath() {
+	            return this.dijkstra.calculateDijkstra(this._nodes.get(), this._edges.get(), this.selectedNodes.toArray());
+	        }
+	    }, {
 	        key: 'addNode',
 	        value: function addNode() {
 	            try {
@@ -27552,6 +27617,7 @@
 	                    console.log('Delete Edge: ', edge.id);
 	                    _this2.removeEdge(edge.id);
 	                });
+	                if (this.selectedNodes.contains(node)) this.clearSelectedNodes();
 	            } catch (err) {
 	                alert(err);
 	            }
@@ -27608,6 +27674,17 @@
 	            }
 	        }
 	    }, {
+	        key: 'getSelected',
+	        value: function getSelected() {
+	            return this.selectedNodes.toArray();
+	        }
+	    }, {
+	        key: 'clearSelectedNodes',
+	        value: function clearSelectedNodes() {
+	            this.selectedNodes.clear();
+	            this._onSelectedChanges(this.selectedNodes.toArray());
+	        }
+	    }, {
 	        key: 'hasConnection',
 	        value: function hasConnection(node1, node2) {
 	            return this._edges.get({
@@ -27615,6 +27692,24 @@
 	                    return item.from === node1 && item.to === node2 || item.to === node1 && item.from === node2;
 	                }
 	            });
+	        }
+	    }, {
+	        key: 'calculateDistances',
+	        value: function calculateDistances(nodes) {
+	            var result = [];
+	            for (var i = 0; i < nodes.length - 1; i++) {
+	                var point = {};
+	                point.name = nodes[i];
+	                point.to = nodes[i + 1];
+	                point.distance = this.getDistance(nodes[i], nodes[i + 1]);
+	                result.push(point);
+	            }
+	            return result;
+	        }
+	    }, {
+	        key: 'getDistance',
+	        value: function getDistance(node1, node2) {
+	            return this.hasConnection(node1, node2)[0].label;
 	        }
 	    }, {
 	        key: 'resetNetwork',
@@ -27636,15 +27731,10 @@
 
 	            this._network = new _vis2.default.Network(this._container, data, this._options);
 	            this._network = this._addNetworkEvents(this._network);
+	            this._network.on('click', this._clickNode.bind(this));
 	            this._onNodeChanges(this._nodes.get());
 	            this._onEdgeChanges(this._edges.get());
 	        }
-	    }, {
-	        key: 'highlightNode',
-	        value: function highlightNode() {}
-	    }, {
-	        key: 'highlightEdge',
-	        value: function highlightEdge() {}
 
 	        //////"Private" Methods
 
@@ -27652,13 +27742,37 @@
 	        key: '_addNetworkEvents',
 	        value: function _addNetworkEvents(network) {
 	            var _network = network;
-	            _network.on('selectNode', this._clickNode);
-	            _network.on('deselectNode', this._clickNode);
+	            _network.on('click', this._clickNode);
 	            return _network;
 	        }
 	    }, {
 	        key: '_clickNode',
-	        value: function _clickNode(obj) {}
+	        value: function _clickNode(obj) {
+	            var _this3 = this;
+
+	            var node = obj.nodes[0];
+	            if (!node || !this.selectedNodes) return;
+	            if (this.selectedNodes.contains(node)) {
+	                (function () {
+	                    var backupstack = new _bucketsJs2.default.Stack();
+	                    _this3.selectedNodes.forEach(function (node) {
+	                        backupstack.add(node);
+	                    });
+	                    _this3.selectedNodes.clear();
+	                    backupstack.forEach(function (oldNode) {
+	                        if (oldNode != node) _this3.selectedNodes.add(oldNode);
+	                    });
+	                })();
+	            } else {
+	                if (this.selectedNodes.size() < 2) {
+	                    this.selectedNodes.add(node);
+	                } else {
+	                    this.selectedNodes.pop();
+	                    this.selectedNodes.add(node);
+	                }
+	            }
+	            this._onSelectedChanges(this.selectedNodes.toArray());
+	        }
 	    }]);
 
 	    return GraphControls;
@@ -73922,9 +74036,10 @@
 
 	    _createClass(DijkstraHelper, [{
 	        key: 'calculateDijkstra',
-	        value: function calculateDijkstra(nodes, edges, from, to) {
+	        value: function calculateDijkstra(nodes, edges, points) {
 	            this.nodesToVertex(nodes, edges);
-	            return this.dijkstra.calculateDijkstra(from, to);
+	            if (points.length != 2) return;
+	            return this.dijkstra.calculateDijkstra(points[1], points[0]);
 	        }
 	    }, {
 	        key: 'nodesToVertex',
@@ -74434,9 +74549,12 @@
 	                    }
 	                });
 	            }
-
+	            if (path.length > 0) path.push(start);
 	            return path;
 	        }
+	    }, {
+	        key: "_calculateDistance",
+	        value: function _calculateDistance() {}
 	    }, {
 	        key: "addVertices",
 	        value: function addVertices(vertexes) {
@@ -74456,6 +74574,17 @@
 
 	exports.default = Dijkstra;
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
+
+/***/ },
+/* 14 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;// buckets 1.90.0 
+	// (c) 2013, 2015 Mauricio Santos <mauriciosantoss@gmail.com> 
+	// https://github.com/mauriciosantos/Buckets-JS
+
+	!function(a,b){ true?!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (b), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)):"object"==typeof exports?module.exports=b():a.buckets=b()}(this,function(){"use strict";var a={};return a.defaultCompare=function(a,b){return b>a?-1:a===b?0:1},a.defaultEquals=function(a,b){return a===b},a.defaultToString=function(b){return null===b?"BUCKETS_NULL":a.isUndefined(b)?"BUCKETS_UNDEFINED":a.isString(b)?b:b.toString()},a.isFunction=function(a){return"function"==typeof a},a.isUndefined=function(a){return void 0===a},a.isString=function(a){return"[object String]"===Object.prototype.toString.call(a)},a.reverseCompareFunction=function(b){return a.isFunction(b)?function(a,c){return-1*b(a,c)}:function(a,b){return b>a?1:a===b?0:-1}},a.compareToEquals=function(a){return function(b,c){return 0===a(b,c)}},a.arrays={},a.arrays.indexOf=function(b,c,d){var e,f=d||a.defaultEquals,g=b.length;for(e=0;g>e;e+=1)if(f(b[e],c))return e;return-1},a.arrays.lastIndexOf=function(b,c,d){var e,f=d||a.defaultEquals,g=b.length;for(e=g-1;e>=0;e-=1)if(f(b[e],c))return e;return-1},a.arrays.contains=function(b,c,d){return a.arrays.indexOf(b,c,d)>=0},a.arrays.remove=function(b,c,d){var e=a.arrays.indexOf(b,c,d);return 0>e?!1:(b.splice(e,1),!0)},a.arrays.frequency=function(b,c,d){var e,f=d||a.defaultEquals,g=b.length,h=0;for(e=0;g>e;e+=1)f(b[e],c)&&(h+=1);return h},a.arrays.equals=function(b,c,d){var e,f=d||a.defaultEquals,g=b.length;if(b.length!==c.length)return!1;for(e=0;g>e;e+=1)if(!f(b[e],c[e]))return!1;return!0},a.arrays.copy=function(a){return a.concat()},a.arrays.swap=function(a,b,c){var d;return 0>b||b>=a.length||0>c||c>=a.length?!1:(d=a[b],a[b]=a[c],a[c]=d,!0)},a.arrays.forEach=function(a,b){var c,d=a.length;for(c=0;d>c;c+=1)if(b(a[c])===!1)return},a.Bag=function(b){var c={},d=b||a.defaultToString,e=new a.Dictionary(d),f=0;return c.add=function(b,d){var g;return(isNaN(d)||a.isUndefined(d))&&(d=1),a.isUndefined(b)||0>=d?!1:(c.contains(b)?e.get(b).copies+=d:(g={value:b,copies:d},e.set(b,g)),f+=d,!0)},c.count=function(a){return c.contains(a)?e.get(a).copies:0},c.contains=function(a){return e.containsKey(a)},c.remove=function(b,d){var g;return(isNaN(d)||a.isUndefined(d))&&(d=1),a.isUndefined(b)||0>=d?!1:c.contains(b)?(g=e.get(b),f-=d>g.copies?g.copies:d,g.copies-=d,g.copies<=0&&e.remove(b),!0):!1},c.toArray=function(){var a,b,c,d,f,g=[],h=e.values(),i=h.length;for(d=0;i>d;d+=1)for(a=h[d],b=a.value,c=a.copies,f=0;c>f;f+=1)g.push(b);return g},c.toSet=function(){var b,c=new a.Set(d),f=e.values(),g=f.length;for(b=0;g>b;b+=1)c.add(f[b].value);return c},c.forEach=function(a){e.forEach(function(b,c){var d,e=c.value,f=c.copies;for(d=0;f>d;d+=1)if(a(e)===!1)return!1;return!0})},c.size=function(){return f},c.isEmpty=function(){return 0===f},c.clear=function(){f=0,e.clear()},c.equals=function(b){var d;return a.isUndefined(b)||"function"!=typeof b.toSet?!1:c.size()!==b.size()?!1:(d=!0,b.forEach(function(a){return d=c.count(a)===b.count(a)}),d)},c},a.BSTree=function(b){function c(a,b){for(var c,d=a;void 0!==d&&0!==c;)c=g(b,d.element),0>c?d=d.leftCh:c>0&&(d=d.rightCh);return d}function d(a){for(var b=a;void 0!==b.leftCh;)b=b.leftCh;return b}var e,f={},g=b||a.defaultCompare,h=0;return f.add=function(b){function c(a){for(var b,c,d=e;void 0!==d;){if(c=g(a.element,d.element),0===c)return;0>c?(b=d,d=d.leftCh):(b=d,d=d.rightCh)}return a.parent=b,void 0===b?e=a:g(a.element,b.element)<0?b.leftCh=a:b.rightCh=a,a}if(a.isUndefined(b))return!1;var d={element:b,leftCh:void 0,rightCh:void 0,parent:void 0};return void 0!==c(d)?(h+=1,!0):!1},f.clear=function(){e=void 0,h=0},f.isEmpty=function(){return 0===h},f.size=function(){return h},f.contains=function(b){return a.isUndefined(b)?!1:void 0!==c(e,b)},f.remove=function(a){function b(a,b){void 0===a.parent?e=b:a===a.parent.leftCh?a.parent.leftCh=b:a.parent.rightCh=b,void 0!==b&&(b.parent=a.parent)}function f(a){if(void 0===a.leftCh)b(a,a.rightCh);else if(void 0===a.rightCh)b(a,a.leftCh);else{var c=d(a.rightCh);c.parent!==a&&(b(c,c.rightCh),c.rightCh=a.rightCh,c.rightCh.parent=c),b(a,c),c.leftCh=a.leftCh,c.leftCh.parent=c}}var g;return g=c(e,a),void 0===g?!1:(f(g),h-=1,!0)},f.inorderTraversal=function(a){function b(a,c,d){void 0===a||d.stop||(b(a.leftCh,c,d),d.stop||(d.stop=c(a.element)===!1,d.stop||b(a.rightCh,c,d)))}b(e,a,{stop:!1})},f.preorderTraversal=function(a){function b(a,c,d){void 0===a||d.stop||(d.stop=c(a.element)===!1,d.stop||(b(a.leftCh,c,d),d.stop||b(a.rightCh,c,d)))}b(e,a,{stop:!1})},f.postorderTraversal=function(a){function b(a,c,d){void 0===a||d.stop||(b(a.leftCh,c,d),d.stop||(b(a.rightCh,c,d),d.stop||(d.stop=c(a.element)===!1)))}b(e,a,{stop:!1})},f.levelTraversal=function(b){function c(b,c){var d=a.Queue();for(void 0!==b&&d.enqueue(b);!d.isEmpty();){if(b=d.dequeue(),c(b.element)===!1)return;void 0!==b.leftCh&&d.enqueue(b.leftCh),void 0!==b.rightCh&&d.enqueue(b.rightCh)}}c(e,b)},f.minimum=function(){return f.isEmpty()?void 0:d(e).element},f.maximum=function(){function a(a){for(;void 0!==a.rightCh;)a=a.rightCh;return a}if(!f.isEmpty())return a(e).element},f.forEach=function(a){f.inorderTraversal(a)},f.toArray=function(){var a=[];return f.inorderTraversal(function(b){a.push(b)}),a},f.height=function(){function a(b){return void 0===b?-1:Math.max(a(b.leftCh),a(b.rightCh))+1}function b(b){return void 0===b?-1:Math.max(a(b.leftCh),a(b.rightCh))+1}return b(e)},f.equals=function(b){var c;return a.isUndefined(b)||"function"!=typeof b.levelTraversal?!1:f.size()!==b.size()?!1:(c=!0,b.forEach(function(a){return c=f.contains(a)}),c)},f},a.Dictionary=function(b){var c={},d={},e=0,f=b||a.defaultToString,g="/$ ";return c.get=function(b){var c=d[g+f(b)];if(!a.isUndefined(c))return c.value},c.set=function(b,c){var h,i,j;if(!a.isUndefined(b)&&!a.isUndefined(c))return i=g+f(b),j=d[i],a.isUndefined(j)?(e+=1,h=void 0):h=j.value,d[i]={key:b,value:c},h},c.remove=function(b){var c=g+f(b),h=d[c];return a.isUndefined(h)?void 0:(delete d[c],e-=1,h.value)},c.keys=function(){var a,b=[];for(a in d)Object.prototype.hasOwnProperty.call(d,a)&&b.push(d[a].key);return b},c.values=function(){var a,b=[];for(a in d)Object.prototype.hasOwnProperty.call(d,a)&&b.push(d[a].value);return b},c.forEach=function(a){var b,c,e;for(b in d)if(Object.prototype.hasOwnProperty.call(d,b)&&(c=d[b],e=a(c.key,c.value),e===!1))return},c.containsKey=function(b){return!a.isUndefined(c.get(b))},c.clear=function(){d={},e=0},c.size=function(){return e},c.isEmpty=function(){return 0>=e},c.equals=function(b,d){var e,f;return a.isUndefined(b)||"function"!=typeof b.keys?!1:c.size()!==b.size()?!1:(e=d||a.defaultEquals,f=!0,b.forEach(function(a,b){return f=e(c.get(a),b)}),f)},c},a.Heap=function(b){function c(b){function c(a){return Math.floor((a-1)/2)}var d;for(d=c(b);b>0&&g(f[d],f[b])>0;)a.arrays.swap(f,d,b),b=d,d=c(b)}function d(b){function c(a){return 2*a+1}function d(a){return 2*a+2}function e(a,b){return b>=f.length?a>=f.length?-1:a:g(f[a],f[b])<=0?a:b}var h;for(h=e(c(b),d(b));h>=0&&g(f[b],f[h])>0;)a.arrays.swap(f,h,b),b=h,h=e(c(b),d(b))}var e={},f=[],g=b||a.defaultCompare;return e.peek=function(){return f.length>0?f[0]:void 0},e.add=function(b){return a.isUndefined(b)?void 0:(f.push(b),c(f.length-1),!0)},e.removeRoot=function(){var a;return f.length>0?(a=f[0],f[0]=f[f.length-1],f.splice(f.length-1,1),f.length>0&&d(0),a):void 0},e.contains=function(b){var c=a.compareToEquals(g);return a.arrays.contains(f,b,c)},e.size=function(){return f.length},e.isEmpty=function(){return f.length<=0},e.clear=function(){f.length=0},e.forEach=function(b){a.arrays.forEach(f,b)},e.toArray=function(){return a.arrays.copy(f)},e.equals=function(b){var c,d,f;return a.isUndefined(b)||"function"!=typeof b.removeRoot?!1:e.size()!==b.size()?!1:(c=e.toArray(),d=b.toArray(),f=a.compareToEquals(g),c.sort(g),d.sort(g),a.arrays.equals(c,d,f))},e},a.LinkedList=function(){function b(a){var b,e;if(!(0>a||a>=f)){if(a===f-1)return d;for(b=c,e=0;a>e;e+=1)b=b.next;return b}}var c,d,e={},f=0;return e.add=function(e,g){var h,i;return a.isUndefined(g)&&(g=f),0>g||g>f||a.isUndefined(e)?!1:(h={element:e,next:void 0},0===f?(c=h,d=h):g===f?(d.next=h,d=h):0===g?(h.next=c,c=h):(i=b(g-1),h.next=i.next,i.next=h),f+=1,!0)},e.first=function(){return void 0!==c?c.element:void 0},e.last=function(){return void 0!==d?d.element:void 0},e.elementAtIndex=function(a){var c=b(a);if(void 0!==c)return c.element},e.indexOf=function(b,d){var e=d||a.defaultEquals,f=c,g=0;if(a.isUndefined(b))return-1;for(;void 0!==f;){if(e(f.element,b))return g;g+=1,f=f.next}return-1},e.contains=function(a,b){return e.indexOf(a,b)>=0},e.remove=function(b,e){var g,h=e||a.defaultEquals,i=c;if(1>f||a.isUndefined(b))return!1;for(;void 0!==i;){if(h(i.element,b))return i===c?(c=c.next,i===d&&(d=void 0)):i===d?(d=g,g.next=i.next,i.next=void 0):(g.next=i.next,i.next=void 0),f-=1,!0;g=i,i=i.next}return!1},e.clear=function(){c=void 0,d=void 0,f=0},e.equals=function(b,d){var f=d||a.defaultEquals,g=!0,h=c;return a.isUndefined(b)||"function"!=typeof b.elementAtIndex?!1:e.size()!==b.size()?!1:(b.forEach(function(a){return g=f(a,h.element),h=h.next,g}),g)},e.removeElementAtIndex=function(a){var e,g;if(!(0>a||a>=f))return 1===f?(e=c.element,c=void 0,d=void 0):(g=b(a-1),void 0===g?(e=c.element,c=c.next):g.next===d&&(e=d.element,d=g),void 0!==g&&(e=g.next.element,g.next=g.next.next)),f-=1,e},e.forEach=function(a){for(var b=c;void 0!==b&&a(b.element)!==!1;)b=b.next},e.reverse=function(){for(var a,b,e=c;void 0!==e;)b=e.next,e.next=a,a=e,e=b;b=c,c=d,d=b},e.toArray=function(){var a=[];return e.forEach(function(b){a.push(b)}),a},e.size=function(){return f},e.isEmpty=function(){return 0>=f},e},a.MultiDictionary=function(b,c){var d={},e=new a.Dictionary(b),f=c||a.defaultEquals;return d.get=function(b){var c=e.get(b);return a.isUndefined(c)?[]:a.arrays.copy(c)},d.set=function(b,c){var g;return a.isUndefined(b)||a.isUndefined(c)?!1:d.containsKey(b)?(g=e.get(b),a.arrays.contains(g,c,f)?!1:(g.push(c),!0)):(e.set(b,[c]),!0)},d.remove=function(b,c){var d,g;return a.isUndefined(c)?(d=e.remove(b),a.isUndefined(d)?!1:!0):(g=e.get(b),a.arrays.remove(g,c,f)?(0===g.length&&e.remove(b),!0):!1)},d.keys=function(){return e.keys()},d.values=function(){var a,b,c,d=e.values(),f=[];for(a=0;a<d.length;a+=1)for(c=d[a],b=0;b<c.length;b+=1)f.push(c[b]);return f},d.containsKey=function(a){return e.containsKey(a)},d.clear=function(){return e.clear()},d.size=function(){return e.size()},d.isEmpty=function(){return e.isEmpty()},d.forEach=function(a){return e.forEach(a)},d.equals=function(b){var c,e=!0;return a.isUndefined(b)||"function"!=typeof b.values?!1:d.size()!==b.size()?!1:(b.forEach(function(b,g){return c=d.get(b)||[],c.length!==g.length?e=!1:a.arrays.forEach(c,function(b){return e=a.arrays.contains(g,b,f)}),e}),e)},d},a.PriorityQueue=function(b){var c={},d=a.reverseCompareFunction(b),e=new a.Heap(d);return c.enqueue=function(a){return e.add(a)},c.add=function(a){return e.add(a)},c.dequeue=function(){var a;return 0!==e.size()?(a=e.peek(),e.removeRoot(),a):void 0},c.peek=function(){return e.peek()},c.contains=function(a){return e.contains(a)},c.isEmpty=function(){return e.isEmpty()},c.size=function(){return e.size()},c.clear=function(){e.clear()},c.forEach=function(a){e.forEach(a)},c.toArray=function(){return e.toArray()},c.equals=function(b){var e,f,g;return a.isUndefined(b)||"function"!=typeof b.dequeue?!1:c.size()!==b.size()?!1:(e=c.toArray(),f=b.toArray(),g=a.compareToEquals(d),e.sort(d),f.sort(d),a.arrays.equals(e,f,g))},c},a.Queue=function(){var b={},c=new a.LinkedList;return b.enqueue=function(a){return c.add(a)},b.add=function(a){return c.add(a)},b.dequeue=function(){var a;return 0!==c.size()?(a=c.first(),c.removeElementAtIndex(0),a):void 0},b.peek=function(){return 0!==c.size()?c.first():void 0},b.size=function(){return c.size()},b.contains=function(a,b){return c.contains(a,b)},b.isEmpty=function(){return c.size()<=0},b.clear=function(){c.clear()},b.forEach=function(a){c.forEach(a)},b.toArray=function(){return c.toArray()},b.equals=function(c,d){var e,f,g;return a.isUndefined(c)||"function"!=typeof c.dequeue?!1:b.size()!==c.size()?!1:(e=d||a.defaultEquals,f=!0,c.forEach(function(a){return g=b.dequeue(),b.enqueue(g),f=e(g,a)}),f)},b},a.Set=function(b){var c={},d=new a.Dictionary(b);return c.contains=function(a){return d.containsKey(a)},c.add=function(b){return c.contains(b)||a.isUndefined(b)?!1:(d.set(b,b),!0)},c.intersection=function(a){c.forEach(function(b){a.contains(b)||c.remove(b)})},c.union=function(a){a.forEach(function(a){c.add(a)})},c.difference=function(a){a.forEach(function(a){c.remove(a)})},c.isSubsetOf=function(a){var b=!0;return c.size()>a.size()?!1:(c.forEach(function(c){return a.contains(c)?void 0:(b=!1,!1)}),b)},c.remove=function(a){return c.contains(a)?(d.remove(a),!0):!1},c.forEach=function(a){d.forEach(function(b,c){return a(c)})},c.toArray=function(){return d.values()},c.isEmpty=function(){return d.isEmpty()},c.size=function(){return d.size()},c.clear=function(){d.clear()},c.equals=function(b){var d;return a.isUndefined(b)||"function"!=typeof b.isSubsetOf?!1:c.size()!==b.size()?!1:(d=!0,b.forEach(function(a){return d=c.contains(a)}),d)},c},a.Stack=function(){var b={},c=new a.LinkedList;return b.push=function(a){return c.add(a,0)},b.add=function(a){return c.add(a,0)},b.pop=function(){return c.removeElementAtIndex(0)},b.peek=function(){return c.first()},b.size=function(){return c.size()},b.contains=function(a,b){return c.contains(a,b)},b.isEmpty=function(){return c.isEmpty()},b.clear=function(){c.clear()},b.forEach=function(a){c.forEach(a)},b.toArray=function(){return c.toArray()},b.equals=function(d,e){var f,g,h;return a.isUndefined(d)||"function"!=typeof d.peek?!1:b.size()!==d.size()?!1:(f=e||a.defaultEquals,g=!0,d.forEach(function(a){return h=b.pop(),c.add(h),g=f(h,a)}),g)},b},a});
+	//# sourceMappingURL=buckets.min.js.map
 
 /***/ }
 /******/ ]);

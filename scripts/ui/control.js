@@ -2,9 +2,14 @@ import Graph from './graph';
 
 class Control {
     constructor () {
-        this.graph = new Graph(this._onNodeUpdate.bind(this), this._onEdgeUpdate.bind(this));
+        this.graph = new Graph(
+            this._onNodeUpdate.bind(this),
+            this._onEdgeUpdate.bind(this),
+            this._onSelectedNodeUpdate.bind(this)
+        );
         this.setupAddNode();
         this.setupShowNewNode();
+        this.setupDijkstra();
     }
 
 
@@ -20,6 +25,18 @@ class Control {
         })
     }
 
+    setupDijkstra(){
+        $('#CalculatePath').on('click', ()=> {
+            let points = this.graph.calculatePath();
+            points = this.graph.calculateDistances(points);
+            this._pathTable(points);
+            let distance = _.reduce(points,(sum,point)=>{
+                return sum+point.distance;
+            },0);
+            this._addPathDistance(distance);
+        })
+    }
+
 
     toggleAddConectedNode () {
         $('#ConnectToNewNode').toggleClass('hide-div');
@@ -27,6 +44,10 @@ class Control {
 
     deleteNode (name) {
         this.graph.removeNode(name);
+    }
+
+    _onSelectedNodeUpdate(nodes) {
+        this._onUpdate(nodes, '#SelectedNodes', 'selected');
     }
 
     _onNodeUpdate (nodes) {
@@ -42,6 +63,12 @@ class Control {
         tableRows.find("tr").remove();
         let sortedPoints = _.sortBy(points, '-id');
         switch (type) {
+            case 'path':
+                this._addPathPointsRow(tableRows, sortedPoints);
+                break;
+            case 'selected':
+                this._addSelectedNodesRow(tableRows, sortedPoints);
+                break;
             case 'node':
                 this._addNodeRow(tableRows, sortedPoints);
                 this._addListenersTableDeleteButton(element, type);
@@ -51,6 +78,31 @@ class Control {
                 break;
             default: return;
         }
+    }
+
+    _pathTable(points) {
+        this._onUpdate(points,'#NodePath','path')
+    }
+
+    _addPathDistance(distance){
+        let tableRows = $(`#NodePath tbody`);
+        tableRows.append(
+            `<tr><td></td><td></td><td></td><td><b>${distance}</b></td>/tr>`);
+    }
+
+
+    _addPathPointsRow(table, nodes) {
+        for(let i=0;i<nodes.length;i++){
+            table.append(
+                `<tr><td>${nodes[i].name}</td><td>${nodes[i].to}</td><td>${nodes[i].distance}</td><td></td>/tr>`);
+        }
+    }
+
+    _addSelectedNodesRow(table, nodes) {
+        nodes.map(node => {
+            table.append(
+                `<tr><td>${node}</td></tr>`);
+        });
     }
 
     _addNodeRow (table, nodes) {

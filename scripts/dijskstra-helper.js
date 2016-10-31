@@ -5,13 +5,14 @@ class DijkstraHelper {
         this.dijkstra = new Dijstra();
     }
 
-    calculateDijkstra (nodes, edges, from, to) {
-        this.nodesToVertex(nodes,edges);
-        return this.dijkstra.calculateDijkstra(from, to);
+    calculateDijkstra (nodes, edges, points) {
+        this.nodesToVertex(nodes, edges);
+        if(points.length!= 2) return;
+        return this.dijkstra.calculateDijkstra(points[1], points[0]);
     }
 
     nodesToVertex (nodes, edges) {
-        let nodeEdges = _.reduce(nodes,(val, node)=> {
+        let nodeEdges = _.reduce(nodes, (val, node)=> {
             val[node.label] = this.getEdges(node, edges);
             return val;
         }, {});

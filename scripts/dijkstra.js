@@ -89,8 +89,12 @@ class Dijkstra {
                 }
             });
         }
-
+        if(path.length>0) path.push(start);
         return path;
+    }
+
+    _calculateDistance() {
+
     }
 
     addVertices (vertexes) {

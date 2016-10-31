@@ -89,15 +89,48 @@
 
             <!--This is going to be right half-->
             <div class="column is-half">
-                <div id="mynetwork"></div>
+                <div class="columns">
+                    <div class="column">
+                        <div id="mynetwork"></div>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <h1 class="title">Nodos Seleccionados</h1>
+                        <table id="SelectedNodes" class="table is-bordered is-striped is-narrow">
+                            <thead>
+                            <tr>
+                                <th>Nodo</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="column">
+                        <p class="control is-pulled-right">
+                            <button class="button is-primary" id="CalculatePath">Calcular</button>
+                        </p>
+                    </div>
+                </div>
+
             </div>
         </div>
         <div class="columns">
             <div class="column">
-                <label class="label">Resultado</label>
-                <p class="control">
-                    <input id="resultado" type="text" readonly="readonly" class="input" placeholder="">
-                </p>
+                <h1 class="title">Camino</h1>
+                <table id="NodePath" class="table is-bordered is-striped is-narrow">
+                    <thead>
+                    <tr>
+                        <th>De</th>
+                        <th>A</th>
+                        <th>Distancia</th>
+                        <th>Total</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
