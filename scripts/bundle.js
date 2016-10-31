@@ -57,7 +57,7 @@
 
 	var _control2 = _interopRequireDefault(_control);
 
-	var _style = __webpack_require__(8);
+	var _style = __webpack_require__(9);
 
 	var _style2 = _interopRequireDefault(_style);
 
@@ -27458,6 +27458,10 @@
 
 	var _vis2 = _interopRequireDefault(_vis);
 
+	var _dijskstraHelper = __webpack_require__(8);
+
+	var _dijskstraHelper2 = _interopRequireDefault(_dijskstraHelper);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -27470,10 +27474,10 @@
 
 	        this._onNodeChanges = cbOnNodeChanges;
 	        this._onEdgeChanges = cbOnEdgeChanges;
+	        this.dijkstra = new _dijskstraHelper2.default();
+	        this._nodes = new _vis2.default.DataSet([{ id: 'A', label: 'A' }, { id: 'B', label: 'B' }, { id: 'C', label: 'C' }, { id: 'D', label: 'D' }, { id: 'E', label: 'E' }, { id: 'F', label: 'F' }]);
 
-	        this._nodes = new _vis2.default.DataSet([{ id: 'A', label: 'A' }, { id: 'B', label: 'B' }, { id: 'C', label: 'C' }, { id: 'D', label: 'D' }, { id: 'E', label: 'E' }]);
-
-	        this._edges = new _vis2.default.DataSet([{ from: 'A', to: 'C', label: 4 }, { from: 'A', to: 'B', label: 10 }, { from: 'B', to: 'D', label: 2 }, { from: 'B', to: 'E', label: 7 }]);
+	        this._edges = new _vis2.default.DataSet([{ from: 'A', to: 'C', label: 4 }, { from: 'A', to: 'B', label: 10 }, { from: 'B', to: 'D', label: 2 }, { from: 'B', to: 'E', label: 2 }, { from: 'A', to: 'F', label: 2 }, { from: 'F', to: 'E', label: 2 }]);
 
 	        this._nodes.on('*', function () {
 	            console.log('changes on nodes');
@@ -27494,6 +27498,7 @@
 	        this._container = document.getElementById('mynetwork');
 	        // initialize your network!
 	        this.startNetwork();
+	        console.log(this.dijkstra.calculateDijkstra(this._nodes.get(), this._edges.get(), 'A', 'E'));
 	    }
 
 	    ////////////////////////////////////////////////////////////////
@@ -73892,13 +73897,83 @@
 /* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
+	/* WEBPACK VAR INJECTION */(function(_) {'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _dijkstra = __webpack_require__(13);
+
+	var _dijkstra2 = _interopRequireDefault(_dijkstra);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	var DijkstraHelper = function () {
+	    function DijkstraHelper() {
+	        _classCallCheck(this, DijkstraHelper);
+
+	        this.dijkstra = new _dijkstra2.default();
+	    }
+
+	    _createClass(DijkstraHelper, [{
+	        key: 'calculateDijkstra',
+	        value: function calculateDijkstra(nodes, edges, from, to) {
+	            this.nodesToVertex(nodes, edges);
+	            return this.dijkstra.calculateDijkstra(from, to);
+	        }
+	    }, {
+	        key: 'nodesToVertex',
+	        value: function nodesToVertex(nodes, edges) {
+	            var _this = this;
+
+	            var nodeEdges = _.reduce(nodes, function (val, node) {
+	                val[node.label] = _this.getEdges(node, edges);
+	                return val;
+	            }, {});
+
+	            var dijkstraEdges = _.reduce(nodeEdges, function (result, group, key) {
+	                var value = group.reduce(function (val, edge) {
+	                    val.name = key;
+	                    var label = edge.to === key ? edge.from : edge.to;
+	                    val.edges[label] = edge.label;
+	                    return val;
+	                }, { edges: {} });
+	                result.push(value);
+	                return result;
+	            }, []);
+	            return this.dijkstra.addVertices(dijkstraEdges);
+	        }
+	    }, {
+	        key: 'getEdges',
+	        value: function getEdges(node, edges) {
+	            return _.filter(edges, function (item) {
+	                return item.from == node.label || item.to == node.label;
+	            });
+	        }
+	    }]);
+
+	    return DijkstraHelper;
+	}();
+
+	exports.default = DijkstraHelper;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
+
+/***/ },
+/* 9 */
+/***/ function(module, exports, __webpack_require__) {
+
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(9);
+	var content = __webpack_require__(10);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
-	var update = __webpack_require__(11)(content, {});
+	var update = __webpack_require__(12)(content, {});
 	if(content.locals) module.exports = content.locals;
 	// Hot Module Replacement
 	if(false) {
@@ -73915,10 +73990,10 @@
 	}
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
-	exports = module.exports = __webpack_require__(10)();
+	exports = module.exports = __webpack_require__(11)();
 	// imports
 
 
@@ -73929,7 +74004,7 @@
 
 
 /***/ },
-/* 10 */
+/* 11 */
 /***/ function(module, exports) {
 
 	/*
@@ -73985,7 +74060,7 @@
 
 
 /***/ },
-/* 11 */
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/*
@@ -74235,6 +74310,152 @@
 			URL.revokeObjectURL(oldSrc);
 	}
 
+
+/***/ },
+/* 13 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(_) {"use strict";
+
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	var PriorityQueue = function () {
+	    function PriorityQueue() {
+	        _classCallCheck(this, PriorityQueue);
+
+	        this._nodes = [];
+	    }
+
+	    _createClass(PriorityQueue, [{
+	        key: "enqueue",
+	        value: function enqueue(priority, key) {
+	            this._nodes.push({ key: key, priority: priority });
+	            this.sort();
+	        }
+	    }, {
+	        key: "dequeue",
+	        value: function dequeue() {
+	            return this._nodes.shift().key;
+	        }
+	    }, {
+	        key: "sort",
+	        value: function sort() {
+	            this._nodes.sort(function (a, b) {
+	                return a.priority - b.priority;
+	            });
+	        }
+	    }, {
+	        key: "isEmpty",
+	        value: function isEmpty() {
+	            return !this._nodes.length;
+	        }
+	    }]);
+
+	    return PriorityQueue;
+	}();
+
+	var Dijkstra = function () {
+	    function Dijkstra() {
+	        _classCallCheck(this, Dijkstra);
+
+	        this.INFINITY = 1 / 0;
+	        this.vertices = {};
+	    }
+
+	    _createClass(Dijkstra, [{
+	        key: "_addVertexes",
+	        value: function _addVertexes(vertexes) {
+	            var _this = this;
+
+	            _.map(vertexes, function (vertex) {
+	                _this._addVertex(vertex.name, vertex.edges);
+	            });
+	        }
+	    }, {
+	        key: "_addVertex",
+	        value: function _addVertex(name, edges) {
+	            this.vertices[name] = edges;
+	        }
+	    }, {
+	        key: "_shortestPath",
+	        value: function _shortestPath(start, finish) {
+	            var _this2 = this;
+
+	            var nodes = new PriorityQueue(),
+	                distances = {},
+	                previous = {},
+	                path = [],
+	                smallest,
+	                alt;
+	            _.forEach(this.vertices, function (vertice, vertex) {
+	                if (vertex === start) {
+	                    distances[vertex] = 0;
+	                    nodes.enqueue(0, vertex);
+	                } else {
+	                    distances[vertex] = _this2.INFINITY;
+	                    nodes.enqueue(_this2.INFINITY, vertex);
+	                }
+
+	                previous[vertex] = null;
+	            });
+
+	            while (!nodes.isEmpty()) {
+	                smallest = nodes.dequeue();
+
+	                if (smallest === finish) {
+
+	                    while (previous[smallest]) {
+	                        path.push(smallest);
+	                        smallest = previous[smallest];
+	                    }
+
+	                    break;
+	                }
+
+	                if (!smallest || distances[smallest] === this.INFINITY) {
+	                    continue;
+	                }
+
+	                _.forEach(this.vertices[smallest], function (value, neighbor) {
+
+	                    alt = distances[smallest] + _this2.vertices[smallest][neighbor];
+
+	                    if (alt < distances[neighbor]) {
+	                        distances[neighbor] = alt;
+	                        previous[neighbor] = smallest;
+
+	                        nodes.enqueue(alt, neighbor);
+	                    }
+	                });
+	            }
+
+	            return path;
+	        }
+	    }, {
+	        key: "addVertices",
+	        value: function addVertices(vertexes) {
+	            this.vertices = {};
+	            this._addVertexes(vertexes);
+	            return this.vertices;
+	        }
+	    }, {
+	        key: "calculateDijkstra",
+	        value: function calculateDijkstra(start, finish) {
+	            return this._shortestPath(start, finish);
+	        }
+	    }]);
+
+	    return Dijkstra;
+	}();
+
+	exports.default = Dijkstra;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ }
 /******/ ]);

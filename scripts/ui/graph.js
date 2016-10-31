@@ -1,23 +1,27 @@
 import vis from 'vis/dist/vis';
+import Dijktra from '../dijskstra-helper';
 
 class GraphControls {
     constructor (cbOnNodeChanges, cbOnEdgeChanges) {
         this._onNodeChanges = cbOnNodeChanges;
         this._onEdgeChanges = cbOnEdgeChanges;
-
+        this.dijkstra = new Dijktra();
         this._nodes = new vis.DataSet([
             {id: 'A', label: 'A'},
             {id: 'B', label: 'B'},
             {id: 'C', label: 'C'},
             {id: 'D', label: 'D'},
-            {id: 'E', label: 'E'}
+            {id: 'E', label: 'E'},
+            {id: 'F', label: 'F'},
         ]);
 
         this._edges = new vis.DataSet([
             {from: 'A', to: 'C', label: 4},
             {from: 'A', to: 'B', label: 10},
             {from: 'B', to: 'D', label: 2},
-            {from: 'B', to: 'E', label: 7}
+            {from: 'B', to: 'E', label: 2},
+            {from: 'A', to: 'F', label: 2},
+            {from: 'F', to: 'E', label: 2}
         ]);
 
         this._nodes.on('*', () => {
@@ -39,6 +43,7 @@ class GraphControls {
         this._container = document.getElementById('mynetwork');
         // initialize your network!
         this.startNetwork();
+        console.log(this.dijkstra.calculateDijkstra(this._nodes.get(),this._edges.get(),'A','E'));
     }
 
     ////////////////////////////////////////////////////////////////
